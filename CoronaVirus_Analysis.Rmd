@@ -1,0 +1,89 @@
+---
+title: "CoronaVirus Data Analysis"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Reading the Data File: covid_19_data.csv
+Data Fields are:
+Sno - Serial number
+ObservationDate - Date of the observation in MM/DD/YYYY
+Province/State - Province or state of the observation (Could be empty when missing)
+Country/Region - Country of observation
+Last Update - Time in UTC at which the row is updated for the given province or country. (Not standardised and so please clean before using it)
+Confirmed - Cumulative number of confirmed cases till that date
+Deaths - Cumulative number of of deaths till that date
+Recovered - Cumulative number of recovered cases till that date
+
+```{r }
+
+data <- read.csv('novel-corona-virus-2019-dataset/covid_19_data.csv',header=TRUE)
+d <- data
+```
+
+OnservationDate is factor converting it to Date format
+
+
+```{r}
+data$ObservationDate <- as.Date(as.character(data$ObservationDate),tryFormats = "%m/%d/%Y")
+d <- data[Country.Region=="India",]
+```
+To calculate the total number of Confirmed,Recovered and Deaths 
+we need to get the count of last updated entry for each province and state
+```{r}
+data <- data %>% 
+  group_by(Country.Region,Province.State) %>% 
+  filter(ObservationDate==max(ObservationDate)) %>% 
+  ungroup()
+
+print(paste0("Total Confirmed cases around the world:" , sum(data$Confirmed)))
+
+print(paste0("Total Recovered cases around the world:" , sum(data$Recovered)))
+
+print(paste0("Total Deaths cases around the world:" , sum(data$Deaths)))
+
+Percent_death = (sum(data$Deaths)/sum(data$Confirmed))* 100
+
+print(paste0("Percentage of Deaths around the world:" , Percent_death))
+
+recovery_percent = (sum(data$Recovered)/sum(data$Confirmed))* 100
+print(paste0("Percentage of Recovery around the world:" , recovery_percent))
+
+```
+
+Plotting the Increase in cases in India over time
+```{r}
+library(ggplot2)
+library(dplyr)
+d %>% 
+  filter(Country.Region=='India') %>% 
+  ggplot(.,aes(x=as.Date(ObservationDate, tryFormats = "%m/%d/%Y"),y=Confirmed))+ geom_line()+
+  xlab("Increase in cases")
+
+```
+```{r}
+d %>% 
+  filter(Country.Region=='Mainland China') %>% 
+  ggplot(.,aes(x=as.Date(ObservationDate, tryFormats = "%m/%d/%Y"),y=Confirmed))+ geom_line()+
+  xlab("Increase in cases")
+```
+
+
+```{r}
+d %>% 
+  filter(Country.Region=='Mainland China') %>% 
+  ggplot(.,aes(x=as.Date(ObservationDate, tryFormats = "%m/%d/%Y"),y=Deaths))+ geom_line()
+```
+
+
+```{r}
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+  filter(Country.Region == "India") %>%
+ggplot(.,aes(x=as.Date(as.character(ObservationDate), tryFormats = "%m/%d/%Y"),y=Confirmed, color = as.factor(Country.Region)))+geom_line()+ theme(axis.text.x = element_text(angle = 90, hjust = 1))

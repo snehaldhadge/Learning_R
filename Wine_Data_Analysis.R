@@ -80,3 +80,20 @@ hoslem.test(wine_data$review, fitted(glm.fit))
 #Null deviance: 1269.92  on 1598  degrees of freedom
 #Residual deviance:  872.08  on 1590  degrees of freedom
 #AIC: 890.08
+
+
+
+#LDA
+library(MASS)
+lda.fit<- lda(wine_data$review~.-quality,data=wine_data,CV=TRUE)
+lda.fit
+#      0    1
+#0   1318   64
+#1   135   82
+#True poistive rate is (1318+82)/(1318+135+64+82)=  1400/1599 = 87.5
+#
+
+
+lda.fit.values <- predict(lda.fit)
+ldahist(lda.fit.values$x[,1],g=wine_data$review)
+

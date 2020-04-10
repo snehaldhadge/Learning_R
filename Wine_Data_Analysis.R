@@ -16,8 +16,15 @@ plot(wine_data)
 
 corrplot(cor(wine_data))
 
+dev.off()
 #count number of samples for each quality
 table(wine_data$quality)
+
+#Distribution of Wine Data
+ggplot(wine_data,aes(x=quality))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(3,8,1))+
+  ggtitle("Distribution of Red Wine Quality Ratings")+
+  theme_classic()
 
 # There is not any predictors with very high correlation
 
@@ -38,6 +45,13 @@ table(wine_data$review)
 #here data is not balances
 #  0    1 
 #1382  217 
+#There are more bad reviews than Good Reviews
+
+#Plotting this ditribution
+ggplot(wine_data,aes(x=review,fill=factor(review)))+geom_bar(stat = "count",position = "dodge")+
+  scale_x_continuous(breaks = seq(0,1,1))+
+  ggtitle("Distribution of Good/Bad Red Wines")+
+  theme_classic()
 
 #Logistic regression to classify model
 glm.fit <- glm(wine_data$review~.-quality,data=wine_data,family=binomial)
@@ -94,6 +108,120 @@ lda.fit
 #
 
 
-lda.fit.values <- predict(lda.fit)
+lda.fit.values <- predict(lda.fit,wine_data)
 ldahist(lda.fit.values$x[,1],g=wine_data$review)
 
+
+#Using RandomForest
+#Baseline Random Forest Model
+library(randomForest)
+RF_wine<-randomForest(factor(review)~.-quality,wine_data,ntree=150)
+RF_wine
+#The overall accuracy for the model 91.6% 
+
+importance    <- importance(RF_wine)
+importance
+
+#Lets divide the data into Train and Test Set
+library(caret)
+set.seed(1)
+
+wine_data$review <- as.factor(wine_data$review)
+
+inTrain <- createDataPartition(wine_data$review, p=.9, list = F)
+
+train <- wine_data[inTrain,]
+
+valid <- wine_data[-inTrain,]
+#Random Forest on the train data
+RF_wine<-randomForest(review~.-quality,train,ntree=150)
+#Use Validation data to test
+newdata = valid[,!colnames(valid) %in% c("review")]
+rf_result <- predict(RF_wine, newdata)
+#Lets compare the results
+confusionMatrix(rf_result, valid$review)
+#Accuracy is 94%
+
+
+#Using XGBoost
+#
+
+# xgboost
+library(xgboost)
+data.train <- xgb.DMatrix(data = data.matrix(train[, !colnames(valid) %in% c("review","quality")]), label = train$review)
+
+data.valid <- xgb.DMatrix(data = data.matrix(valid[, !colnames(valid) %in% c("quality","review")]))
+
+parameters <- list(
+  
+  # General Parameters
+  
+  booster            = "gbtree",      
+  
+  silent             = 0,           
+  
+  # Booster Parameters
+  
+  eta                = 0.08,              
+  
+  gamma              = 0.7,                 
+  
+  max_depth          = 8,                
+  
+  min_child_weight   = 2,            
+  
+  subsample          = .9,                 
+  
+  colsample_bytree   = .5,                
+  
+  colsample_bylevel  = 1,          
+  
+  lambda             = 1,    
+  
+  alpha              = 0,       
+  
+  # Task Parameters
+  
+  objective          = "multi:softmax",   # default = "reg:linear"
+  
+  eval_metric        = "merror",
+  
+  num_class          = 7,
+  
+  seed               = 1               # reproducability seed
+  
+  , tree_method = "hist"
+  
+  , grow_policy = "lossguide"
+  
+)
+
+
+
+xgb_model <- xgb.train(parameters, data.train, nrounds = 100)
+
+xgb_pred <- predict(xgb_model, data.valid)
+
+
+
+confusionMatrix(as.factor(xgb_pred-1), valid$review)
+
+#here accuracy is almost 95%
+
+
+###SVM
+###
+# svm
+library(e1071)
+set.seed(1)
+
+svm_model <- svm(review~.-quality,train)
+
+svm_result <- predict(svm_model, newdata = valid[,!colnames(valid) %in% c("review")])
+
+
+
+confusionMatrix(svm_result, valid$review)
+#Here accuracy is 91% which is less than bgboost and RF
+#
+#

@@ -1,0 +1,139 @@
+---
+title: "Starbucks_Menu_Nutrition_Analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(ggplot2)
+library(caret)
+library(dplyr)
+```
+
+
+The drink menu contains the extended Nutrition information for Starbucks drink menu items. 
+
+```{r }
+sbs_extdrinkMenu <- read.csv("starbucks-menu/starbucks_drinkMenu_expanded.csv",header=T)
+sbs_extdrinkMenu
+
+```
+Calories in each of the Beverage Drink
+```{r}
+Bev_Calories <- sbs_extdrinkMenu %>% 
+  select(Beverage, Beverage_prep, Calories)%>% 
+  group_by(Beverage) %>%
+  summarise(avg_Calories= mean(Calories)) 
+```
+```{r}
+Bev_Calories %>% 
+  ggplot(., aes(y = reorder(Beverage,avg_Calories),x=avg_Calories,fill=avg_Calories)) +
+  geom_bar(stat="identity") +
+  theme_linedraw()+
+  theme(legend.position = "none") +
+  xlab("Average Calories")+
+  ylab("Beverage")+
+  ggtitle("Calories Count: Starbucks Beverages")
+```
+
+Average Calories by Beverage Category
+```{r }
+Calories <- sbs_extdrinkMenu %>% 
+  select(Beverage_category, Beverage_prep, Calories)%>% 
+  group_by(Beverage_category) %>%
+  summarise(avg_Calories= mean(Calories)) 
+
+```
+```{r}
+Calories %>% 
+  ggplot(., aes(y = reorder(Beverage_category,avg_Calories),x=avg_Calories,fill=avg_Calories)) +
+  geom_bar(stat="identity") +
+  theme_linedraw()+
+  theme(legend.position = "none") +
+  xlab("Average Calories")+
+  ylab("Beverage Categories")+
+  ggtitle("Average Calories Count per Starbucks Beverages Category")
+```
+
+Sugar Content per beverage
+
+```{r}
+bev_sugar <- sbs_extdrinkMenu %>% 
+  select(Beverage, Beverage_prep, Sugars..g.)%>% 
+  group_by(Beverage) %>%
+  summarise(avg_sug= mean(Sugars..g.)) 
+bev_sugar %>% 
+  ggplot(., aes(y = reorder(Beverage,avg_sug),x=avg_sug,fill=avg_sug)) +
+  geom_bar(stat="identity") +
+  theme_linedraw()+
+  theme(legend.position = "none") +
+  xlab("Average Sugar Content")+
+  ylab("Beverage")+
+  ggtitle("Average Sugar Content per Starbucks Beverage")
+  
+  
+```
+
+
+Sugar Content per beverage Category
+```{r }
+sugar <- sbs_extdrinkMenu %>% 
+  select(Beverage_category, Beverage_prep, Sugars..g.)%>% 
+  group_by(Beverage_category) %>%
+  summarise(avg_sug= mean(Sugars..g.)) 
+sugar %>% 
+  ggplot(., aes(y = reorder(Beverage_category,avg_sug),x=avg_sug,fill=avg_sug)) +
+  geom_bar(stat="identity") +
+  theme_linedraw()+
+  theme(legend.position = "none") +
+  xlab("Average Sugar Content")+
+  ylab("Beverage Category")+
+  ggtitle("Average Sugar Content per Starbucks Beverage Category")
+``` 
+
+
+
+Lets look at the Caffine Content
+Caffeine is factor convert it to a number first
+
+```{r}
+sbs_extdrinkMenu$Caffeine..mg. <- as.numeric(sbs_extdrinkMenu$Caffeine..mg.)
+bev_caffeine <- sbs_extdrinkMenu %>% 
+  select(Beverage, Beverage_prep, Caffeine..mg.)%>% 
+  group_by(Beverage) %>%
+  summarise(avg_caf= mean(Caffeine..mg.)) 
+
+bev_caffeine%>% 
+  ggplot(., aes(y = reorder(Beverage,avg_caf),x=avg_caf,fill=avg_caf)) +
+  geom_bar(stat="identity") +
+  theme_linedraw()+
+  theme(legend.position = "none") +
+  xlab("Average Sugar Content")+
+  ylab("Beverage")+
+  ggtitle("Caffeine Content per Starbucks Beverage")
+```
+
+
+
+```{r}
+sbs_extdrinkMenu.dmodel <- dummyVars( ~ ., data=sbs_extdrinkMenu, fullRank=T)
+sbs_extdrinkMenu.d <- as.data.frame(predict(sbs_extdrinkMenu.dmodel, sbs_extdrinkMenu))
+sbs.pca <- prcomp(sbs_extdrinkMenu.d[,4:18], scale=TRUE) 
+summary(sbs.pca)
+```
+```{r}
+biplot(sbs.pca,scale=0, cex=.7)
+```
+
+
+
+```{r}
+
+sbs.var<- sbs.pca $sdev^2
+pve<- sbs.var/ sum(sbs.var)
+plot(pve, xlab="PCA", ylab="Prop of Variance Explained", ylim=c(0,1), type='b')
+
+```
+
